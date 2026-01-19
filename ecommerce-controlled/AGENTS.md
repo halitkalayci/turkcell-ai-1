@@ -70,3 +70,51 @@ If any detail is missing, ASK.
 - Version MUST be placed in path.
 
 - Breaking changes require a new version; do not silently break clients.
+
+
+## 3) ARCHITECTURE (PER SERVICE)
+
+Each service MUST follow this layering:
+
+`controller (web) -> application (use-cases) -> domain (business rules) -> infrastructure (persistence/clients/messaging)`
+
+### 3.1 Controller (web)
+
+- No business logic.
+
+- Validates input, maps to application layer, return response DTOs.
+
+- NEVER returns JPA entities.
+
+### 3.2 Application (use-cases)
+
+- Orchestrates use-cases, transaction, ports.
+
+- MUST BE unit-testable.
+
+### 3.3 Domain
+
+- Contains business invariants and domain model.
+
+- Avoid framework annotations in domain if possible.
+
+### 3.4 Infrastructure
+
+- JPA entities, repositories, external clients, messaging adapters.
+
+- No business rules here.
+
+
+## 4) DEPENDENCIES (VERY STRICT)
+
+- You MUST NOT add new dependencies without explicit approval.
+
+- Prefer Spring Boot starters already included.
+
+- If a new dependency seems necessary, you MUST provide:
+  
+  1. Why it is required?
+
+  2. Why standard Spring/Java is insufficient?
+
+  3. Alternatives + trade-offs

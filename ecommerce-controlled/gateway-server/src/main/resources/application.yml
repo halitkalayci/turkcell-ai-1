@@ -13,22 +13,12 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/api/v1/orders,/api/v1/orders/**
-          filters:
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
         
         # Inventory Service Routes
         - id: inventory-service
           uri: http://localhost:8081
           predicates:
             - Path=/api/v1/inventory,/api/v1/inventory/**
-          filters:
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
       
       # Global CORS Configuration
       globalcors:

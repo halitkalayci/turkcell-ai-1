@@ -7,6 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class OrderServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.rn(OrderServiceApplication.class, args);
+        SpringApplication.run(OrderServiceApplication.class, args);
     }
 }

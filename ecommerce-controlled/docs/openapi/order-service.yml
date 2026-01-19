@@ -1,0 +1,619 @@
+openapi: 3.0.3
+info:
+  title: Order Service API
+  description: Sipariş yönetimi için CRUD işlemlerini sağlayan API
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@ecommerce.com
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.ecommerce.com/orders
+    description: Production server
+
+tags:
+  - name: Orders
+    description: Sipariş CRUD işlemleri
+
+paths:
+  /api/v1/orders:
+    get:
+      tags:
+        - Orders
+      summary: Tüm siparişleri listele
+      description: Sistemdeki tüm siparişleri getirir
+      operationId: getAllOrders
+      parameters:
+        - name: page
+          in: query
+          description: Sayfa numarası
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Sayfa başına kayıt sayısı
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          description: Sıralama kriteri (örn. createdAt,desc)
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Sipariş durumuna göre filtreleme
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, CANCELLED, SHIPPED, DELIVERED]
+      responses:
+        '200':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderResponse'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  currentPage:
+                    type: integer
+        '500':
+          description: Sunucu hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      tags:
+        - Orders
+      summary: Yeni sipariş oluştur
+      description: Yeni bir sipariş kaydı oluşturur
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Sipariş başarıyla oluşturuldu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Geçersiz istek
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Sunucu hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: ID'ye göre sipariş bilgisini getir
+      description: Belirtilen ID'ye sahip sipariş bilgisini getirir
+      operationId: getOrderById
+      parameters:
+        - name: id
+          in: path
+          description: Sipariş ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '404':
+          description: Sipariş bulunamadı
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Sunucu hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    put:
+      tags:
+        - Orders
+      summary: Sipariş bilgilerini güncelle
+      description: Belirtilen ID'ye sahip sipariş bilgilerini günceller
+      operationId: updateOrder
+      parameters:
+        - name: id
+          in: path
+          description: Sipariş ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '200':
+          description: Sipariş başarıyla güncellendi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Geçersiz istek
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Sipariş bulunamadı
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Sunucu hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    delete:
+      tags:
+        - Orders
+      summary: Siparişi sil
+      description: Belirtilen ID'ye sahip siparişi siler
+      operationId: deleteOrder
+      parameters:
+        - name: id
+          in: path
+          description: Sipariş ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Sipariş başarıyla silindi
+        '404':
+          description: Sipariş bulunamadı
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Sunucu hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/orders/customer/{customerId}:
+    get:
+      tags:
+        - Orders
+      summary: Müşteri ID'sine göre siparişleri getir
+      description: Belirtilen müşteri ID'sine ait tüm siparişleri getirir
+      operationId: getOrdersByCustomerId
+      parameters:
+        - name: customerId
+          in: path
+          description: Müşteri ID
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Sayfa numarası
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Sayfa başına kayıt sayısı
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderResponse'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  currentPage:
+                    type: integer
+        '500':
+          description: Sunucu hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/orders/{id}/status:
+    patch:
+      tags:
+        - Orders
+      summary: Sipariş durumunu güncelle
+      description: Belirtilen sipariş ID'sinin durumunu günceller
+      operationId: updateOrderStatus
+      parameters:
+        - name: id
+          in: path
+          description: Sipariş ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, CONFIRMED, CANCELLED, SHIPPED, DELIVERED]
+                  description: Yeni sipariş durumu
+                  example: "CONFIRMED"
+                notes:
+                  type: string
+                  description: Durum güncelleme notları
+                  example: "Ödeme onaylandı"
+      responses:
+        '200':
+          description: Sipariş durumu başarıyla güncellendi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Geçersiz istek
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Sipariş bulunamadı
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Sunucu hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/orders/{id}/cancel:
+    post:
+      tags:
+        - Orders
+      summary: Siparişi iptal et
+      description: Belirtilen sipariş ID'sini iptal eder
+      operationId: cancelOrder
+      parameters:
+        - name: id
+          in: path
+          description: Sipariş ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: İptal nedeni
+                  example: "Müşteri talebi"
+      responses:
+        '200':
+          description: Sipariş başarıyla iptal edildi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Geçersiz istek veya sipariş iptal edilemez durumda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Sipariş bulunamadı
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Sunucu hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    OrderRequest:
+      type: object
+      required:
+        - customerId
+        - items
+      properties:
+        customerId:
+          type: string
+          description: Müşteri ID
+          example: "CUST-001"
+        customerName:
+          type: string
+          description: Müşteri adı
+          example: "Ahmet Yılmaz"
+        customerEmail:
+          type: string
+          format: email
+          description: Müşteri e-posta adresi
+          example: "ahmet.yilmaz@example.com"
+        shippingAddress:
+          type: object
+          description: Teslimat adresi
+          required:
+            - street
+            - city
+            - postalCode
+            - country
+          properties:
+            street:
+              type: string
+              example: "Atatürk Cad. No:123"
+            city:
+              type: string
+              example: "Istanbul"
+            postalCode:
+              type: string
+              example: "34000"
+            country:
+              type: string
+              example: "Turkey"
+        billingAddress:
+          type: object
+          description: Fatura adresi
+          required:
+            - street
+            - city
+            - postalCode
+            - country
+          properties:
+            street:
+              type: string
+              example: "Atatürk Cad. No:123"
+            city:
+              type: string
+              example: "Istanbul"
+            postalCode:
+              type: string
+              example: "34000"
+            country:
+              type: string
+              example: "Turkey"
+        items:
+          type: array
+          description: Sipariş kalemleri
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/OrderItemRequest'
+        notes:
+          type: string
+          description: Sipariş notları
+          example: "Lütfen öğleden sonra teslim edin"
+
+    OrderItemRequest:
+      type: object
+      required:
+        - productId
+        - productName
+        - quantity
+        - unitPrice
+      properties:
+        productId:
+          type: string
+          description: Ürün ID
+          example: "PROD-001"
+        productName:
+          type: string
+          description: Ürün adı
+          example: "Laptop"
+        quantity:
+          type: integer
+          description: Sipariş miktarı
+          minimum: 1
+          example: 2
+        unitPrice:
+          type: number
+          format: double
+          description: Birim fiyat
+          minimum: 0
+          example: 15000.00
+
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Sipariş ID
+          example: 1
+        orderNumber:
+          type: string
+          description: Sipariş numarası
+          example: "ORD-2026-001"
+        customerId:
+          type: string
+          description: Müşteri ID
+          example: "CUST-001"
+        customerName:
+          type: string
+          description: Müşteri adı
+          example: "Ahmet Yılmaz"
+        customerEmail:
+          type: string
+          format: email
+          description: Müşteri e-posta adresi
+          example: "ahmet.yilmaz@example.com"
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        billingAddress:
+          $ref: '#/components/schemas/Address'
+        items:
+          type: array
+          description: Sipariş kalemleri
+          items:
+            $ref: '#/components/schemas/OrderItemResponse'
+        totalAmount:
+          type: number
+          format: double
+          description: Toplam tutar
+          example: 30000.00
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, CANCELLED, SHIPPED, DELIVERED]
+          description: Sipariş durumu
+          example: "PENDING"
+        notes:
+          type: string
+          description: Sipariş notları
+          example: "Lütfen öğleden sonra teslim edin"
+        createdAt:
+          type: string
+          format: date-time
+          description: Oluşturulma tarihi
+          example: "2026-01-19T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Güncellenme tarihi
+          example: "2026-01-19T15:45:00Z"
+
+    OrderItemResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Sipariş kalemi ID
+          example: 1
+        productId:
+          type: string
+          description: Ürün ID
+          example: "PROD-001"
+        productName:
+          type: string
+          description: Ürün adı
+          example: "Laptop"
+        quantity:
+          type: integer
+          description: Sipariş miktarı
+          example: 2
+        unitPrice:
+          type: number
+          format: double
+          description: Birim fiyat
+          example: 15000.00
+        totalPrice:
+          type: number
+          format: double
+          description: Toplam fiyat (quantity * unitPrice)
+          example: 30000.00
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: "Atatürk Cad. No:123"
+        city:
+          type: string
+          example: "Istanbul"
+        postalCode:
+          type: string
+          example: "34000"
+        country:
+          type: string
+          example: "Turkey"
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Hata zamanı
+          example: "2026-01-19T10:30:00Z"
+        status:
+          type: integer
+          description: HTTP durum kodu
+          example: 400
+        error:
+          type: string
+          description: Hata türü
+          example: "Bad Request"
+        message:
+          type: string
+          description: Hata mesajı
+          example: "Geçersiz istek parametreleri"
+        path:
+          type: string
+          description: İstek yolu
+          example: "/api/v1/orders"

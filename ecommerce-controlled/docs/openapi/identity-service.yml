@@ -1,0 +1,447 @@
+openapi: 3.0.3
+info:
+  title: Identity Service API
+  description: |
+    Identity Service provides user authentication and profile management.
+    Integrates with Keycloak for OAuth2/OIDC authentication.
+  version: 1.0.0
+  contact:
+    name: E-Commerce Team
+
+servers:
+  - url: http://localhost:8083/api/v1
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Profile
+    description: User profile management
+
+paths:
+  /identity/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user
+      description: |
+        Creates a new user in Keycloak with default 'customer' role.
+        User is immediately enabled and can login after registration.
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: Invalid input or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidEmail:
+                  summary: Invalid email format
+                  value:
+                    timestamp: "2026-01-20T14:30:00Z"
+                    status: 400
+                    error: "Bad Request"
+                    message: "Invalid email format"
+                    path: "/api/v1/identity/register"
+                userExists:
+                  summary: User already exists
+                  value:
+                    timestamp: "2026-01-20T14:30:00Z"
+                    status: 400
+                    error: "Bad Request"
+                    message: "User with this email already exists"
+                    path: "/api/v1/identity/register"
+                weakPassword:
+                  summary: Password too weak
+                  value:
+                    timestamp: "2026-01-20T14:30:00Z"
+                    status: 400
+                    error: "Bad Request"
+                    message: "Password must be at least 8 characters"
+                    path: "/api/v1/identity/register"
+        '503':
+          description: Keycloak service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /identity/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: |
+        Authenticates user with Keycloak and returns JWT access token.
+        Uses OAuth2 password grant type.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid input (missing email or password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2026-01-20T14:30:00Z"
+                status: 401
+                error: "Unauthorized"
+                message: "Invalid credentials"
+                path: "/api/v1/identity/login"
+        '503':
+          description: Keycloak service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /identity/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: |
+        Exchanges a valid refresh token for a new access token.
+        Uses OAuth2 refresh_token grant type.
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '400':
+          description: Invalid input (missing refresh token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2026-01-20T14:30:00Z"
+                status: 401
+                error: "Unauthorized"
+                message: "Invalid or expired refresh token"
+                path: "/api/v1/identity/refresh"
+        '503':
+          description: Keycloak service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /identity/me:
+    get:
+      tags:
+        - Profile
+      summary: Get authenticated user profile
+      description: |
+        Returns profile information for the authenticated user.
+        Requires valid JWT access token in Authorization header.
+      operationId: getUserProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingToken:
+                  summary: Missing Authorization header
+                  value:
+                    timestamp: "2026-01-20T14:30:00Z"
+                    status: 401
+                    error: "Unauthorized"
+                    message: "Missing Authorization header"
+                    path: "/api/v1/identity/me"
+                invalidToken:
+                  summary: Invalid or expired token
+                  value:
+                    timestamp: "2026-01-20T14:30:00Z"
+                    status: 401
+                    error: "Unauthorized"
+                    message: "Invalid or expired token"
+                    path: "/api/v1/identity/me"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /identity/login or /identity/refresh
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address (must be unique)
+          example: "user@example.com"
+          minLength: 5
+          maxLength: 100
+        username:
+          type: string
+          description: Username (must be unique)
+          example: "johndoe"
+          minLength: 3
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_-]+$'
+        password:
+          type: string
+          format: password
+          description: User password (min 8 characters)
+          example: "SecurePass123!"
+          minLength: 8
+          maxLength: 100
+        firstName:
+          type: string
+          description: User first name (optional)
+          example: "John"
+          maxLength: 50
+        lastName:
+          type: string
+          description: User last name (optional)
+          example: "Doe"
+          maxLength: 50
+
+    RegisterResponse:
+      type: object
+      required:
+        - userId
+        - email
+        - username
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: Keycloak user ID
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        username:
+          type: string
+          example: "johndoe"
+        message:
+          type: string
+          example: "User registered successfully"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          description: User password
+          example: "SecurePass123!"
+
+    LoginResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - expiresIn
+        - tokenType
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+          example: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          description: Refresh token for obtaining new access tokens
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expiresIn:
+          type: integer
+          description: Access token lifetime in seconds
+          example: 900
+        tokenType:
+          type: string
+          description: Token type (always "Bearer")
+          example: "Bearer"
+        userId:
+          type: string
+          format: uuid
+          description: User ID from token
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    RefreshRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Valid refresh token obtained from login
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    RefreshResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - expiresIn
+        - tokenType
+      properties:
+        accessToken:
+          type: string
+          description: New JWT access token
+          example: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          description: New refresh token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expiresIn:
+          type: integer
+          description: Access token lifetime in seconds
+          example: 900
+        tokenType:
+          type: string
+          description: Token type (always "Bearer")
+          example: "Bearer"
+
+    UserProfileResponse:
+      type: object
+      required:
+        - userId
+        - email
+        - username
+        - roles
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: User ID from JWT token
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "user@example.com"
+        username:
+          type: string
+          description: Username
+          example: "johndoe"
+        firstName:
+          type: string
+          description: User first name
+          example: "John"
+        lastName:
+          type: string
+          description: User last name
+          example: "Doe"
+        roles:
+          type: array
+          description: User roles from Keycloak
+          items:
+            type: string
+          example: ["customer"]
+        emailVerified:
+          type: boolean
+          description: Whether email is verified
+          example: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp (ISO 8601)
+          example: "2026-01-20T14:30:00Z"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        error:
+          type: string
+          description: HTTP status text
+          example: "Bad Request"
+        message:
+          type: string
+          description: Error message
+          example: "Invalid email format"
+        path:
+          type: string
+          description: Request path
+          example: "/api/v1/identity/register"
+        details:
+          type: array
+          description: Additional error details (optional)
+          items:
+            type: string
+          example: ["email: must be a well-formed email address"]

@@ -207,3 +207,67 @@ Now that rules are approved, they are frozen and require formal review to change
 4. Duplicate event → inbox PK violation → skip processing
 
 ---
+
+## D007 - Identity Service Security Dependencies
+
+**Decision:** Spring Security OAuth2 + Keycloak Admin Client
+
+**Date:** 2026-01-20
+
+**Status:** APPROVED
+
+**What:**
+- identity-service integrates with Keycloak for user authentication
+- Uses Spring Security OAuth2 Resource Server for JWT validation
+- Uses Keycloak Admin Client for user registration
+
+**Dependencies:**
+1. `spring-boot-starter-oauth2-resource-server` - JWT validation for protected endpoints
+2. `spring-boot-starter-oauth2-client` - Client credentials flow (optional, for service-to-service)
+3. `keycloak-admin-client:23.0.0` - Programmatic user creation via Keycloak Admin API
+
+**Why:**
+- Standard Spring Security integration pattern
+- Proven libraries with security track record
+- Avoids reinventing JWT validation and Keycloak integration
+- Consistent with gateway security strategy (docs/security/gateway-security.md)
+- Human owns Keycloak configuration (realm: example, clients defined in docs/security/keycloak.md)
+
+**Alternatives Considered:**
+- Manual JWT parsing with jose4j/nimbus-jose-jwt: Rejected - complex, error-prone, no Spring Security integration
+- Direct Keycloak REST API calls with RestTemplate: Rejected - excessive boilerplate, manual error handling
+- Spring Security without OAuth2: Rejected - would need custom JWT filter chain
+
+**Architecture:**
+- Gateway validates JWT and forwards user context headers (X-User-Id, X-User-Email, X-User-Roles)
+- identity-service validates JWT for `/api/v1/identity/me` endpoint
+- identity-service uses Keycloak Admin Client for `/api/v1/identity/register`
+- Login/refresh delegate to Keycloak token endpoint (password grant, refresh_token grant)
+
+**Configuration Management:**
+- All Keycloak URLs, realm names, client IDs provided via environment variables
+- NO hardcoded secrets in code or application.yml
+- Client secrets from ${KEYCLOAK_ADMIN_SECRET}
+- Configuration template in identity-service/src/main/resources/application.yml
+
+**Security Constraints (per AGENTS.md §8):**
+- AI does NOT configure Keycloak directly
+- AI generates code that READS configuration from environment
+- Human executes Keycloak setup checklist (docs/security/keycloak.md)
+- Human provides client secrets via environment variables
+
+**Trade-offs:**
+- ✅ Battle-tested security libraries
+- ✅ Automatic JWT signature validation, expiration checks
+- ✅ Spring Security filter chain integration
+- ✅ Reduced maintenance burden
+- ❌ Dependency on external libraries (acceptable - security is critical)
+- ❌ Learning curve for Keycloak Admin Client API (mitigated by documentation)
+
+**Next Steps:**
+1. Create identity-service OpenAPI contract (docs/openapi/identity-service.yml)
+2. Implement Maven structure with approved dependencies
+3. Implement use-cases (Register, Login, Refresh, GetProfile)
+4. Configure Spring Security for JWT validation
+
+---

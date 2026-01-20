@@ -47,6 +47,9 @@ public class CreateOrderUseCase {
         List<LineItem> lineItems,
         BigDecimal totalAmount
     ) {
+        // Sync iletişim ile, inventory-serviceden sipariş verilmesi talep edilen ürünlerin stok kontrolü
+        // yapılmalı.
+        
         // Domain model enforces all business rules
         Order order = Order.create(
             customerId,

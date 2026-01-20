@@ -141,6 +141,18 @@ Each service MUST follow this layering:
 
 - Never mix UUID and Long unless explicitly required by contract.
 
-## 6) Gateway Rules (Repo-Wide)
+## 6) GATEWAY RULES (REPO-WIDE)
 
 - Gateway contains NO business logic; only routing + cross-cutting concerns.
+
+## 7) COMMUNICATION (SYNC/ASYNC) - STRICT RULES (NON-NEGOTIABLE)
+
+This repo uses **two** communication modes only:
+
+- **SYNC (blocking)**: HTTP via **OpenFeign**
+- **ASYNC (non-blocking)**: Events via **Kafka** (through Spring Cloud Stream)
+
+If a rule below is violated, the output is WRONG.
+
+---
+

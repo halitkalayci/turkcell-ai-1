@@ -274,3 +274,79 @@ Missing any of these = BLOCKER.
 - Kafka configurations MUST follow this adress: `127.0.0.1:29023`
 
 ---
+
+## 8) IDENTITY & KEYCLOAK GOVERNANCE (STRICT BOUNDARIES)
+
+This repository uses **Keycloak** as the Identity Provider (OAuth2 / OpenID Connect).
+
+### 8.1 Human vs AI responsibility boundary (NON-NEGOTIABLE)
+
+- AI MUST NOT:
+  - claim to access or configure Keycloak directly
+  - invent or assume:
+    - realm names
+    - client ids
+    - client secrets
+    - role names
+    - scope names
+    - token lifetimes
+  - state or imply that any Keycloak operation was executed
+
+- AI MAY:
+  - act as a **Security Architect**
+  - provide **human-executed checklists**
+  - propose **DRAFT configurations**
+  - explain trade-offs and security implications
+  - ask clarification questions when identity decisions are missing
+
+All Keycloak operations are performed by a HUMAN.
+AI is limited to guidance, validation, and documentation.
+
+---
+
+### 8.2 Required documentation before identity-service implementation (HARD BLOCKER)
+
+Before implementing or modifying identity-service, the following MUST exist:
+
+- `docs/security/keycloak.md`
+- `docs/security/gateway-security.md`
+- `docs/security/authorization.md`
+- `docs/security/rate-limits.md`
+
+If any of these files are missing, AI MUST:
+1) STOP implementation
+2) Propose missing files
+3) Ask for explicit approval before generating them
+
+---
+
+### 8.3 Security decisions & dependency control
+
+- Any dependency related to:
+  - OAuth2
+  - OIDC
+  - JWT
+  - Keycloak
+  - Rate limiting
+must be approved via `DECISIONS.md` BEFORE changing build files.
+
+No silent security dependency additions are allowed.
+
+---
+
+### 8.4 Context engineering for security & penetration testing
+
+- AI MAY generate:
+  - threat models
+  - security test scenarios
+  - penetration testing checklists
+  - remediation guidance
+
+- AI MUST NOT:
+  - provide actionable real-world exploitation steps
+  - target real systems
+  - bypass authentication mechanisms
+
+All security prompts must be safe, defensive, and documented.
+
+---

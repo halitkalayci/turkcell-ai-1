@@ -3,9 +3,11 @@ package com.ecommerce.gateway.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint;
 
 /**
  * Security Configuration for API Gateway
@@ -54,10 +56,19 @@ public class SecurityConfig {
             // Disable CSRF for stateless JWT authentication
             .csrf(csrf -> csrf.disable())
             
+            // Disable HTTP Basic (prevents default 401 challenge on public endpoints)
+            .httpBasic(httpBasic -> httpBasic.disable())
+            
+            // Disable form login
+            .formLogin(formLogin -> formLogin.disable())
+            
+            // Enable anonymous authentication for public endpoints
+            .anonymous(anonymous -> anonymous.principal("anonymousUser"))
+            
             // Authorization rules
             .authorizeExchange(exchanges -> exchanges
                 // Public endpoints - no authentication
-                .pathMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                .pathMatchers(HttpMethod.GET, "/actuator/**").permitAll()
                 .pathMatchers(HttpMethod.POST, "/api/v1/identity/login").permitAll()
                 .pathMatchers(HttpMethod.POST, "/api/v1/identity/register").permitAll()
                 .pathMatchers(HttpMethod.POST, "/api/v1/identity/refresh").permitAll()
@@ -81,6 +92,8 @@ public class SecurityConfig {
                     // - issuer-uri: http://localhost:8181/realms/example
                     // - jwk-set-uri: http://localhost:8181/realms/example/protocol/openid-connect/certs
                 })
+                // Return 401 for missing/invalid JWT on protected endpoints
+                .authenticationEntryPoint(new HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED))
             );
 
         return http.build();

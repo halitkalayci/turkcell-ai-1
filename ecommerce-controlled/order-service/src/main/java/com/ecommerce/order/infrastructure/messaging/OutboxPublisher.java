@@ -38,7 +38,7 @@ public class OutboxPublisher {
      * Scheduled every 5 seconds per outbox-pattern.md.
      * Batch size: 10 events.
      */
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 50000)
     public void publishPendingEvents() {
         List<OutboxEntity> newEvents = outboxRepository.findNewEventsForPublishing();
         

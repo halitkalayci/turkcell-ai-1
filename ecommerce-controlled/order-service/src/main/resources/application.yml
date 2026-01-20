@@ -46,3 +46,23 @@ feign:
         loggerLevel: basic
   circuitbreaker:
     enabled: false
+
+# Spring Cloud Stream / Kafka Configuration
+# Per docs/events/kafka-topics.md and AGENTS.md §7.8
+spring.cloud.stream:
+  # Kafka binder configuration
+  kafka:
+    binder:
+      brokers: 127.0.0.1:29023
+  
+  # Function bindings
+  function:
+    definition: orderEvents
+  
+  # Output binding for OrderCreated events
+  bindings:
+    orderEvents-out-0:
+      destination: order.events
+      content-type: application/json
+      producer:
+        partition-key-expression: headers['messageKey']

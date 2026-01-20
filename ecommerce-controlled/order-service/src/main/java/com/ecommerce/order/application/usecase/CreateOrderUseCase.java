@@ -1,5 +1,7 @@
 package com.ecommerce.order.application.usecase;
 
+import com.ecommerce.order.application.service.OutboxService;
+import com.ecommerce.order.domain.event.OrderCreatedEvent;
 import com.ecommerce.order.domain.model.Address;
 import com.ecommerce.order.domain.model.LineItem;
 import com.ecommerce.order.domain.model.Order;
@@ -8,8 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Use case: Create Order
@@ -20,6 +24,7 @@ import java.util.UUID;
  * - Validate request data (delegated to domain model)
  * - Create order with PENDING status
  * - Persist order
+ * - Write OrderCreated event to outbox (same transaction)
  * - Return created order
  */
 @Service
@@ -27,13 +32,16 @@ public class CreateOrderUseCase {
 
     private final OrderRepository orderRepository;
     private final com.ecommerce.order.application.port.StockCheckPort stockCheckPort;
+    private final OutboxService outboxService;
 
     public CreateOrderUseCase(
             OrderRepository orderRepository,
-            com.ecommerce.order.application.port.StockCheckPort stockCheckPort
+            com.ecommerce.order.application.port.StockCheckPort stockCheckPort,
+            OutboxService outboxService
     ) {
         this.orderRepository = orderRepository;
         this.stockCheckPort = stockCheckPort;
+        this.outboxService = outboxService;
     }
 
     /**
@@ -70,6 +78,28 @@ public class CreateOrderUseCase {
             totalAmount
         );
         
-        return orderRepository.save(order);
+        // Persist order
+        Order savedOrder = orderRepository.save(order);
+        
+        // Write OrderCreated event to outbox (same transaction)
+        // Per docs/events/outbox-pattern.md and AGENTS.md §7.8
+        OrderCreatedEvent event = OrderCreatedEvent.builder()
+            .eventId(UUID.randomUUID())
+            .eventType("OrderCreated")
+            .version("1")
+            .timestamp(OffsetDateTime.now())
+            .orderId(savedOrder.id())
+            .customerId(savedOrder.customerId())
+            .lineItems(savedOrder.lineItems().stream()
+                .map(li -> OrderCreatedEvent.LineItem.builder()
+                    .productId(li.productId())
+                    .quantity(li.quantity())
+                    .build())
+                .collect(Collectors.toList()))
+            .build();
+        
+        outboxService.writeOrderCreatedEvent(event);
+        
+        return savedOrder;
     }
 }

@@ -120,3 +120,90 @@ Now that rules are approved, they are frozen and require formal review to change
 - Stock reservation after order creation (async via Kafka) - out of scope for this task
 
 ---
+
+## D006 - Event-Driven Architecture: Transactional Outbox Pattern
+
+**Decision:** Implement transactional outbox pattern for guaranteed event delivery
+
+**Date:** 2026-01-20
+
+**Status:** APPROVED & IMPLEMENTED
+
+**What:**
+- Order-service writes OrderCreated events to outbox table in same transaction as order creation
+- Polling publisher reads NEW events from outbox and publishes to Kafka every 5 seconds
+- Inventory-service consumes OrderCreated events and decrements stock with idempotency
+- Event catalog, Kafka topics, outbox schema, and inbox schema fully documented
+
+**Implementation Details:**
+
+**Producer Side (order-service):**
+- Outbox table with NEW/SENT/FAILED status lifecycle
+- OutboxService writes events within business transaction
+- OutboxPublisher polls every 5s, batch size 10, separate transaction
+- Retry: 5 attempts with exponential backoff (100ms-1600ms)
+- Failed events marked as FAILED after max retries (manual intervention required)
+- Topic: order.events, Key: orderId
+- Kafka broker: 127.0.0.1:29023
+
+**Consumer Side (inventory-service):**
+- Inbox table stores processed eventIds (PK constraint for duplicate detection)
+- DecrementStockUseCase inserts into inbox + decrements stock in single transaction
+- Duplicate events detected via DataIntegrityViolationException, processing skipped
+- Consumer group: inventory-service-order-events
+- Retry: 5 attempts with exponential backoff (1s-16s)
+- DLQ: order.events.dlq (after 5 failures)
+- Internal endpoint: POST /internal/stock/decrement-by-product (for testing)
+
+**Architecture:**
+- Communication matrix documented: docs/architecture/communication-matrix.md
+- Event catalog: docs/events/event-catalog.md (OrderCreated v1)
+- Kafka topics: docs/events/kafka-topics.md (order.events + DLQ)
+- Outbox pattern: docs/events/outbox-pattern.md
+- Idempotency: docs/events/idempotency.md
+- Dependencies: spring-cloud-stream + spring-cloud-stream-binder-kafka
+
+**Why:**
+- Per AGENTS.md §7.2: "State changes MUST be ASYNC (Kafka)"
+- Per AGENTS.md §7.8: "Producer MUST implement Transactional Outbox Pattern"
+- Per AGENTS.md §7.8: "Consumer MUST implement Idempotency using inbox table"
+- Guarantees at-least-once delivery without distributed transactions
+- Decouples order creation from inventory update (eventual consistency)
+
+**Reliability Strategy:**
+
+**Retry:**
+- Producer: 5 attempts, exponential backoff, then FAILED status
+- Consumer: 5 attempts via Spring Kafka, exponential backoff, then DLQ
+
+**DLQ:**
+- Topic: order.events.dlq
+- Triggered after 5 consumer retry failures
+- Manual review/replay required (out of scope for MVP)
+
+**Idempotency:**
+- Key: eventId (NOT orderId - supports multiple events per order)
+- Inbox PK constraint prevents duplicate processing
+- Atomic: inbox insert + business logic in same transaction
+
+**Trade-offs:**
+- ✅ Guaranteed event delivery (outbox persists before Kafka)
+- ✅ No distributed transactions (simpler, more reliable)
+- ✅ Consumer idempotency prevents duplicate stock decrements
+- ✅ DLQ prevents poison pill scenarios
+- ❌ 5-second polling delay (eventual consistency acceptable for stock updates)
+- ❌ Outbox/inbox tables grow (cleanup strategy needed for production)
+- ❌ Manual intervention required for FAILED producer events
+
+**Files Created:**
+- order-service: OutboxEntity, OutboxRepository, OutboxService, OutboxPublisher, OrderCreatedEvent, schema.sql
+- inventory-service: InboxEntity, InboxRepository, OrderCreatedEvent, OrderCreatedEventConsumer, DecrementStockUseCase, InternalStockController, schema.sql
+- Configuration: application.yml updates for both services
+
+**Testing:**
+1. Create order → outbox entry created with status=NEW
+2. Wait 5s → OutboxPublisher publishes to Kafka, status=SENT
+3. Inventory consumer receives event → inbox insert + stock decrement
+4. Duplicate event → inbox PK violation → skip processing
+
+---

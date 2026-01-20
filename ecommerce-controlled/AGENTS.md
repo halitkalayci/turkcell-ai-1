@@ -156,7 +156,7 @@ If a rule below is violated, the output is WRONG.
 
 ---
 
-## 7.1) Default rule: Blocking calls MUST be SYNC (Feign)
+### 7.1) Default rule: Blocking calls MUST be SYNC (Feign)
 
 ### 7.1.1 When a call is considered BLOCKING
 A call is BLOCKING if the caller needs the result to continue the current request flow:
@@ -176,7 +176,7 @@ If a blocking dependency exists and no sync contract is defined, implementation 
 
 ---
 
-## 7.2) Async rule: State changes MUST be ASYNC (Kafka)
+### 7.2) Async rule: State changes MUST be ASYNC (Kafka)
 
 ### 7.2.1 What MUST be async
 Use Kafka events for:
@@ -194,7 +194,7 @@ If async is used, events MUST be defined explicitly (name + payload + topic) in 
 
 ---
 
-## 7.3) Decision matrix (must be documented per interaction)
+### 7.3) Decision matrix (must be documented per interaction)
 
 For EACH cross-service interaction, AI MUST produce a decision entry:
 
@@ -208,7 +208,7 @@ If any interaction is not documented, STOP and ASK.
 
 ---
 
-## 7.4) Contract requirements (hard blockers)
+### 7.4) Contract requirements (hard blockers)
 
 ### 7.4.1 Sync (Feign) hard blockers
 For every SYNC interaction, the following MUST exist BEFORE code:
@@ -231,7 +231,7 @@ Missing any of these = BLOCKER.
 
 ---
 
-## 7.5) Reliability rules (mandatory)
+### 7.5) Reliability rules (mandatory)
 
 ### 7.5.1 SYNC reliability
 - Timeouts MUST be set (no infinite waits)
@@ -246,7 +246,7 @@ Missing any of these = BLOCKER.
 
 ---
 
-## 7.6) Forbidden patterns
+### 7.6) Forbidden patterns
 
 - Using Kafka as a blocking dependency (request/reply)
 - Cross-service DB reads
@@ -256,11 +256,21 @@ Missing any of these = BLOCKER.
 
 ---
 
-## 7.7) Default tech choices (unless repo already differs)
+### 7.7) Default tech choices (unless repo already differs)
 
 - Sync HTTP client: **OpenFeign**
 - Async broker: **Kafka**
 - Event serialization: JSON (explicit schema in docs)
 - Event key: aggregateId (e.g., orderId) unless explicitly stated otherwise
+
+### 7.8) Default KAFKA Configurations
+
+- Each producer MUST implement "Transactional Outbox Pattern" and MUST use a publisher to send events to kafka.
+
+- Each consumer MUST implement "Idempotency" using table named `Inbox` 
+
+- Kafka MUST try sending messages (retry) max. 5 times. If failed it MUST send them to DLQ.
+
+- Kafka configurations MUST follow this adress: `127.0.0.1:29023`
 
 ---

@@ -31,3 +31,35 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operationsSorter: method
+
+# Spring Cloud Stream / Kafka Configuration
+# Per docs/events/kafka-topics.md and AGENTS.md §7.8
+spring.cloud.stream:
+  # Kafka binder configuration
+  kafka:
+    binder:
+      brokers: 127.0.0.1:29023
+    
+    # Consumer-specific configuration
+    bindings:
+      orderCreatedConsumer-in-0:
+        consumer:
+          # Retry configuration: 5 attempts with exponential backoff
+          max-attempts: 5
+          back-off-initial-interval: 1000
+          back-off-multiplier: 2.0
+          back-off-max-interval: 16000
+          # Enable DLQ
+          enable-dlq: true
+          dlq-name: order.events.dlq
+  
+  # Function bindings
+  function:
+    definition: orderCreatedConsumer
+  
+  # Input binding for OrderCreated events
+  bindings:
+    orderCreatedConsumer-in-0:
+      destination: order.events
+      group: inventory-service-order-events
+      content-type: application/json

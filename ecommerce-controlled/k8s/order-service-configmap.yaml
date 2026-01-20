@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-service-config
+  namespace: ecom
+  labels:
+    app: order-service
+    managed-by: kubectl
+data:
+  SERVER_PORT: "8082"
+  SPRING_APPLICATION_NAME: "order-service"
+  
+  # Inventory Service URL (k8s service discovery)
+  INVENTORY_SERVICE_URL: "http://inventory-service:8081"
+  
+  # Feign Configuration
+  FEIGN_CLIENT_CONFIG_INVENTORY_SERVICE_CONNECTTIMEOUT: "5000"
+  FEIGN_CLIENT_CONFIG_INVENTORY_SERVICE_READTIMEOUT: "10000"

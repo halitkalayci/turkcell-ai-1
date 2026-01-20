@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inventory-service-config
+  namespace: ecom
+  labels:
+    app: inventory-service
+    managed-by: kubectl
+data:
+  SERVER_PORT: "8081"
+  SPRING_APPLICATION_NAME: "inventory-service"
+  
+  # Kafka Consumer Group
+  SPRING_CLOUD_STREAM_KAFKA_BINDINGS_ORDERCREATEDCONSUMER_IN_0_CONSUMER_GROUP: "inventory-service-group"

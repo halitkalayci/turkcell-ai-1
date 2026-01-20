@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: ecom
+  labels:
+    app: gateway-server
+    managed-by: kubectl
+data:
+  SERVER_PORT: "8080"
+  SPRING_APPLICATION_NAME: "gateway-server"
+  
+  # Service URLs for routing (k8s service discovery)
+  ORDER_SERVICE_URL: "http://order-service:8082"
+  INVENTORY_SERVICE_URL: "http://inventory-service:8081"
+  IDENTITY_SERVICE_URL: "http://identity-service:8083"
+  
+  # Keycloak Configuration (HUMAN: Update with actual Keycloak URLs)
+  KEYCLOAK_ISSUER_URI: "http://keycloak:8181/realms/example"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak:8181/realms/example/protocol/openid-connect/certs"

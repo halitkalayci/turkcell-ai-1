@@ -1,0 +1,87 @@
+# Kubernetes-specific configuration for gateway-server
+# Activated with: --spring.profiles.active=k8s
+
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:gateway-server}
+  
+  # OAuth2 Resource Server (JWT validation)
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8181/realms/example}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8181/realms/example/protocol/openid-connect/certs}
+  
+  # Gateway routing configuration (k8s service discovery)
+  cloud:
+    gateway:
+      routes:
+        - id: order-service
+          uri: ${ORDER_SERVICE_URL:http://order-service:8082}
+          predicates:
+            - Path=/api/v1/orders,/api/v1/orders/**
+        
+        - id: inventory-service
+          uri: ${INVENTORY_SERVICE_URL:http://inventory-service:8081}
+          predicates:
+            - Path=/api/v1/inventory,/api/v1/inventory/**
+        
+        - id: identity-service
+          uri: ${IDENTITY_SERVICE_URL:http://identity-service:8083}
+          predicates:
+            - Path=/api/v1/identity,/api/v1/identity/**
+      
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            maxAge: 3600
+
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: k8s
+
+# Distributed tracing with Zipkin
+management.zipkin.tracing:
+  endpoint: ${ZIPKIN_BASE_URL:http://zipkin-service:9411}/api/v2/spans
+
+management.tracing:
+  sampling:
+    probability: 1.0
+
+# Logging configuration
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    org.springframework.cloud.gateway: INFO
+    reactor.netty.http.client: INFO
+  pattern:
+    console: ""  # Disable default pattern (logback-spring.xml handles JSON)

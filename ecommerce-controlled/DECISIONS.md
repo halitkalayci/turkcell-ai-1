@@ -271,3 +271,77 @@ Now that rules are approved, they are frozen and require formal review to change
 4. Configure Spring Security for JWT validation
 
 ---
+
+## D008 - Kubernetes Deployment & Observability Stack
+
+**Decision:** Prepare full K8s deployment with Loki logging, Zipkin tracing, and health probes
+
+**Date:** 2026-01-20
+
+**Status:** APPROVED & IN PROGRESS
+
+**What:** Comprehensive Kubernetes deployment strategy including:
+- Dockerfiles (single-stage and multi-stage) for all services
+- Spring Boot Actuator for health/readiness probes
+- Loki + Promtail + Grafana for centralized logging
+- Zipkin with direct client integration for distributed tracing
+- JSON structured logging (Logstash encoder)
+- Plain YAML manifests (no Helm)
+
+**Dependencies Approved:**
+```xml
+<!-- For order-service and inventory-service -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+
+<!-- For all services (tracing) -->
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-tracing-bridge-brave</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.zipkin.reporter2</groupId>
+    <artifactId>zipkin-reporter-brave</artifactId>
+</dependency>
+
+<!-- For all services (JSON logging) -->
+<dependency>
+    <groupId>net.logstash.logback</groupId>
+    <artifactId>logstash-logback-encoder</artifactId>
+    <version>7.4</version>
+</dependency>
+```
+
+**Rationale:**
+- **Actuator:** Required for k8s liveness/readiness probes; standard Spring Boot observability
+- **Zipkin Direct:** Simpler than OTel Collector for MVP; Spring Boot 3.x native support via Micrometer Tracing
+- **Loki:** Lightweight, k8s-native logging; lower resource footprint than ELK (~500MB vs ~2GB)
+- **JSON Logging:** Structured logs required for Loki field extraction and querying
+- **Plain YAML:** Transparent, no extra tooling; suitable for learning and MVP
+
+**Infrastructure Components:**
+- Kafka (single-node demo deployment)
+- Loki StatefulSet (single binary mode)
+- Promtail DaemonSet (log collection from all pods)
+- Grafana Deployment (UI for logs)
+- Zipkin Deployment (in-memory storage for demo)
+
+**Namespace:** `ecom`
+
+**Why Not Alternatives:**
+- ELK: Rejected - too heavy for demo environment (3 components, high memory)
+- OTel Collector: Rejected - added complexity for MVP; direct Zipkin simpler
+- Helm: Rejected - adds tooling requirement; plain YAML sufficient for MVP
+
+**Next Steps:**
+1. ✅ Add dependencies to all service pom.xml files
+2. Create Dockerfiles (single + multi-stage) for all services
+3. Create k8s manifests (namespace, configmaps, deployments, services)
+4. Create logging stack manifests (Loki, Promtail, Grafana)
+5. Create tracing manifest (Zipkin)
+6. Create application-k8s.yml profiles with actuator/tracing config
+7. Document kubectl apply sequence for human execution
+
+---

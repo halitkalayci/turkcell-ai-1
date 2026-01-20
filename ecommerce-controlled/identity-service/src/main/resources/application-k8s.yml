@@ -1,0 +1,82 @@
+# Kubernetes-specific configuration for identity-service
+# Activated with: --spring.profiles.active=k8s
+
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:identity-service}
+  
+  # Database configuration (uses env vars from ConfigMap/Secret)
+  datasource:
+    url: jdbc:h2:mem:identitydb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ${DB_PASSWORD:}
+  
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+  
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  
+  # OAuth2 Resource Server (JWT validation)
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8181/realms/example}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8181/realms/example/protocol/openid-connect/certs}
+
+# Keycloak configuration (uses env vars from ConfigMap/Secret)
+keycloak:
+  realm: ${KEYCLOAK_REALM:example}
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8181}
+  admin-client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:identity-service-client}
+  admin-client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:changeme}
+  token-endpoint: ${KEYCLOAK_TOKEN_ENDPOINT:http://keycloak:8181/realms/example/protocol/openid-connect/token}
+  admin-realm: ${KEYCLOAK_ADMIN_REALM:master}
+
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: k8s
+
+# Distributed tracing with Zipkin
+management.zipkin.tracing:
+  endpoint: ${ZIPKIN_BASE_URL:http://zipkin-service:9411}/api/v2/spans
+
+management.tracing:
+  sampling:
+    probability: 1.0
+
+# Logging configuration
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.ecommerce.identity: ${LOGGING_LEVEL_ECOMMERCE:DEBUG}
+    org.springframework.security: INFO
+  pattern:
+    console: ""  # Disable default pattern (logback-spring.xml handles JSON)

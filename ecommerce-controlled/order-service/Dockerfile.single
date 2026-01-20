@@ -1,0 +1,25 @@
+# Single-stage Dockerfile for order-service
+# Java 21 + Spring Boot 3.2.1
+# Simpler build, larger image size (~450MB)
+
+FROM maven:3.9.6-eclipse-temurin-21-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files
+COPY pom.xml ./
+COPY src ./src
+
+# Build and run in same container
+RUN mvn clean package -DskipTests -B
+
+# Expose application port
+EXPOSE 8082
+
+# Set environment variables with defaults
+ENV SPRING_PROFILES_ACTIVE=k8s
+ENV SERVER_PORT=8082
+
+# Run the application
+ENTRYPOINT ["java", "-jar", "target/order-service-1.0.0.jar"]

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: identity-service-config
+  namespace: ecom
+  labels:
+    app: identity-service
+    managed-by: kubectl
+data:
+  SERVER_PORT: "8083"
+  SPRING_APPLICATION_NAME: "identity-service"
+  
+  # Keycloak Configuration (HUMAN: Update with actual Keycloak deployment)
+  KEYCLOAK_REALM: "example"
+  KEYCLOAK_AUTH_SERVER_URL: "http://keycloak:8181"
+  KEYCLOAK_ADMIN_CLIENT_ID: "identity-service-client"
+  KEYCLOAK_TOKEN_ENDPOINT: "http://keycloak:8181/realms/example/protocol/openid-connect/token"
+  KEYCLOAK_ADMIN_REALM: "master"
+  KEYCLOAK_ISSUER_URI: "http://keycloak:8181/realms/example"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak:8181/realms/example/protocol/openid-connect/certs"

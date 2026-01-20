@@ -1,0 +1,56 @@
+# .dockerignore
+# Excludes files from Docker build context for faster builds
+
+# Maven build artifacts
+**/target/
+**/pom.xml.tag
+**/pom.xml.releaseBackup
+**/pom.xml.versionsBackup
+**/pom.xml.next
+**/release.properties
+**/dependency-reduced-pom.xml
+**/buildNumber.properties
+**/.mvn/timing.properties
+**/.mvn/wrapper/maven-wrapper.jar
+
+# IDE files
+**/.idea/
+**/.vscode/
+**/*.iml
+**/*.ipr
+**/*.iws
+**/.classpath
+**/.project
+**/.settings/
+**/.factorypath
+
+# Git
+**/.git/
+**/.gitignore
+**/.gitattributes
+
+# OS files
+**/.DS_Store
+**/Thumbs.db
+**/desktop.ini
+
+# Documentation (not needed in image)
+**/README.md
+**/DECISIONS.md
+**/AGENTS.md
+**/docs/
+
+# Kubernetes manifests
+**/k8s/
+
+# Test files
+**/src/test/
+
+# Logs
+**/*.log
+
+# Temporary files
+**/*.tmp
+**/*.temp
+**/*.swp
+**/*.bak

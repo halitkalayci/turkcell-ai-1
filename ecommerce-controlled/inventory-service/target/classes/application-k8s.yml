@@ -1,0 +1,73 @@
+# Kubernetes-specific configuration for inventory-service
+# Activated with: --spring.profiles.active=k8s
+
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:inventory-service}
+  
+  # Database configuration (uses env vars from ConfigMap/Secret)
+  datasource:
+    url: jdbc:h2:mem:inventorydb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ${DB_PASSWORD:}
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  
+  # Kafka configuration (uses env vars from ConfigMap)
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:kafka-service:9092}
+        bindings:
+          orderCreatedConsumer-in-0:
+            consumer:
+              group: ${SPRING_CLOUD_STREAM_KAFKA_BINDINGS_ORDERCREATEDCONSUMER_IN_0_CONSUMER_GROUP:inventory-service-group}
+              max-attempts: 5
+              back-off-initial-interval: 1000
+              back-off-multiplier: 2.0
+
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: k8s
+
+# Distributed tracing with Zipkin
+management.zipkin.tracing:
+  endpoint: ${ZIPKIN_BASE_URL:http://zipkin-service:9411}/api/v2/spans
+
+management.tracing:
+  sampling:
+    probability: 1.0
+
+# Logging configuration
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.ecommerce: ${LOGGING_LEVEL_ECOMMERCE:DEBUG}
+  pattern:
+    console: ""  # Disable default pattern (logback-spring.xml handles JSON)

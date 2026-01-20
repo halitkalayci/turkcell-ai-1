@@ -32,10 +32,8 @@ COPY --from=builder /app/target/order-service-1.0.0.jar app.jar
 EXPOSE 8082
 
 # Set environment variables with defaults
-ENV SPRING_PROFILES_ACTIVE=default
+ENV SPRING_PROFILES_ACTIVE=k8s
 ENV SERVER_PORT=8082
-ENV KAFKA_BROKERS=127.0.0.1:29023
-ENV INVENTORY_SERVICE_URL=http://localhost:8081
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -2,7 +2,9 @@
 
 **Last Updated:** 2026-01-20  
 **Status:** APPROVED - Ready for Human Execution  
-**Realm:** `example`
+**Keycloak Base URL:** `http://localhost:8181`  
+**Realm:** `example`  
+**Issuer URI:** `http://localhost:8181/realms/example`
 
 ---
 

@@ -5,6 +5,13 @@ spring:
   application:
     name: gateway-server
   
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8181/realms/example}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8181/realms/example/protocol/openid-connect/certs}
+  
   cloud:
     gateway:
       routes:
@@ -13,12 +20,24 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/api/v1/orders,/api/v1/orders/**
+          filters:
+            - JwtHeaders
         
         # Inventory Service Routes
         - id: inventory-service
           uri: http://localhost:8081
           predicates:
             - Path=/api/v1/inventory,/api/v1/inventory/**
+          filters:
+            - JwtHeaders
+        
+        # Identity Service Routes
+        - id: identity-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/identity,/api/v1/identity/**
+          filters:
+            - JwtHeaders
       
       # Global CORS Configuration
       globalcors:
@@ -33,6 +52,17 @@ spring:
               - OPTIONS
             allowedHeaders: "*"
             maxAge: 3600
+
+# SpringDoc OpenAPI / Swagger UI
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    oauth:
+      client-id: gateway-client
+      use-pkce-with-authorization-code-grant: true
 
 # Actuator endpoints
 management:
